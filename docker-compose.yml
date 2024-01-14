@@ -6,3 +6,45 @@ services:
       - "5173:5173"
     volumes:
       - ./frontend/chatapp:/app
+    depends_on:
+      - backend
+  backend:
+    build: ./backend
+    command: sh -c 'npx nodemon ./index.js/'
+    tty: true
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - MYSQL_ROOT_HOST=db
+      - MYSQL_DATABASE=${DB_NAME}
+      # - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASS}
+      - MYSQL_ROOT_PASSWORD=${DB_PASS}
+      - TOKEN_SECRET=${TOKEN_SECRET}
+  db:
+    image: mysql:8
+    environment:
+      - MYSQL_ROOT_HOST=${DB_ROOT_HOST}
+      - MYSQL_DATABASE=${DB_NAME}
+      # - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASS}
+      - MYSQL_ROOT_PASSWORD=${DB_PASS}
+      - TZ=${TZ}
+    ports:
+      - '3306:3306'
+    volumes:
+      - ./db/conf:/etc/mysql/conf.d/:ro
+      - mysqldata:/var/lib/mysql
+      # - ./db/logs:/var/log/mysql
+    healthcheck:
+      test: mysql --user=$$MYSQL_USER --password=$$MYSQL_ROOT_PASSWORD -e 'SHOW DATABASES;'
+      interval: 2s
+      timeout: 20s
+      retries: 10
+volumes:
+  mysqldata:
